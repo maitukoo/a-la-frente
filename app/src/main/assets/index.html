@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#14101f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>¡A la frente! — Adivina la palabra</title>
+<style>
+:root{
+  --bg:#14101f; --panel:#211a33; --ink:#fff7ec; --mute:#b7aecb;
+  --ok:#21c46b; --pass:#ff8a1f; --accent:#ffd23f;
+  --r:22px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;overflow:hidden;overscroll-behavior:none}
+button{font:inherit;color:inherit;border:0;cursor:pointer}
+.screen{position:fixed;inset:0;display:none;flex-direction:column}
+.screen.on{display:flex}
+
+/* ---------- MENÚ ---------- */
+#menu{overflow-y:auto;padding:max(18px,env(safe-area-inset-top)) 16px 28px}
+.brand{display:flex;align-items:center;gap:12px;margin:4px 4px 14px}
+.logo{width:52px;height:52px;border-radius:16px;background:var(--accent);color:#14101f;display:grid;place-items:center;
+  font-size:30px;transform:rotate(-8deg);box-shadow:0 6px 0 #c99a00}
+.brand h1{margin:0;font-size:28px;font-weight:900;letter-spacing:-.5px;line-height:1}
+.brand p{margin:4px 0 0;color:var(--mute);font-size:14px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 4px 16px}
+.chip{padding:9px 14px;border-radius:999px;background:var(--panel);font-weight:700;font-size:14px;color:var(--mute)}
+.chip.sel{background:var(--ink);color:#14101f}
+.bar .lbl{color:var(--mute);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-right:2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.cat{position:relative;border-radius:var(--r);padding:16px 14px 14px;min-height:118px;text-align:left;display:flex;flex-direction:column;
+  justify-content:space-between;box-shadow:0 6px 0 rgba(0,0,0,.28);transition:transform .08s}
+.cat:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.28)}
+.cat .em{font-size:38px;line-height:1}
+.cat .nm{font-weight:900;font-size:19px;line-height:1.1;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.18)}
+.cat .ct{font-size:12px;font-weight:700;color:rgba(255,255,255,.85)}
+.cat .best{position:absolute;top:12px;right:12px;font-size:12px;font-weight:800;background:rgba(0,0,0,.22);padding:3px 8px;border-radius:999px}
+.cat.custom{background:repeating-linear-gradient(135deg,#2c2444 0 12px,#251e3a 12px 24px);border:2px dashed #5a4d7a;box-shadow:none}
+.foot{margin:22px 4px 0;color:var(--mute);font-size:13px;line-height:1.5}
+.foot b{color:var(--ink)}
+.toggles{display:flex;gap:8px;flex-wrap:wrap;margin:0 4px 16px}
+
+/* ---------- PREPARADOS ---------- */
+#ready{align-items:center;justify-content:center;text-align:center;padding:24px}
+#ready .em{font-size:72px}
+#ready h2{font-size:clamp(26px,6vw,54px);margin:10px 0 6px;font-weight:900}
+#ready p{color:var(--ink);opacity:.9;font-size:clamp(15px,2.6vw,22px);margin:4px 0;max-width:720px}
+.how{display:flex;gap:14px;margin:22px 0 8px;flex-wrap:wrap;justify-content:center}
+.how div{background:rgba(0,0,0,.22);border-radius:16px;padding:12px 16px;font-weight:800;font-size:clamp(14px,2.2vw,18px)}
+.big{margin-top:18px;background:var(--ink);color:#14101f;font-weight:900;font-size:22px;padding:16px 38px;border-radius:999px;box-shadow:0 6px 0 rgba(0,0,0,.3)}
+.ghost{margin-top:12px;background:transparent;color:var(--ink);opacity:.8;font-weight:700;font-size:15px;padding:8px 14px}
+#count{position:fixed;inset:0;display:none;place-items:center;font-size:min(42vw,60vh);font-weight:900}
+
+/* ---------- JUEGO ---------- */
+#play{align-items:center;justify-content:center;transition:background .15s}
+#timer{position:absolute;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);font-size:clamp(22px,5vh,44px);
+  font-weight:900;background:rgba(0,0,0,.25);padding:4px 18px;border-radius:999px;font-variant-numeric:tabular-nums}
+#timer.hurry{background:#e5252a;animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:translateX(-50%) scale(1.12)}}
+#scoreTag{position:absolute;top:max(14px,env(safe-area-inset-top));right:18px;font-weight:900;font-size:clamp(18px,4vh,30px);opacity:.85}
+#word{font-weight:900;text-align:center;line-height:1.02;max-width:92vw;letter-spacing:-.01em;text-shadow:0 4px 0 rgba(0,0,0,.18);word-break:break-word}
+#hint{position:absolute;bottom:max(10px,env(safe-area-inset-bottom));left:0;right:0;display:flex;justify-content:space-between;padding:0 18px;
+  font-weight:800;font-size:clamp(12px,2.6vh,16px);opacity:.55}
+#flash{position:fixed;inset:0;display:none;place-items:center;font-weight:900;font-size:min(14vw,24vh);text-align:center;z-index:5}
+#flash.ok{background:var(--ok);display:grid}
+#flash.pass{background:var(--pass);display:grid}
+#flash small{display:block;font-size:.32em;opacity:.85;margin-top:.2em}
+#calib{position:absolute;bottom:42px;font-size:14px;font-weight:700;opacity:.7}
+
+/* ---------- RESULTADOS ---------- */
+#results{overflow-y:auto;padding:max(18px,env(safe-area-inset-top)) 18px 28px;align-items:center}
+#results .sc{font-size:clamp(70px,18vh,150px);font-weight:900;line-height:1;margin-top:6px}
+#results .sub{color:var(--mute);font-weight:700;margin:4px 0 18px;text-align:center}
+#list{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:900px}
+#list span{padding:8px 14px;border-radius:999px;font-weight:800;font-size:16px}
+#list .y{background:var(--ok)} #list .n{background:#3a3150;color:#cfc6e0;text-decoration:line-through;text-decoration-thickness:2px}
+.row{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap;justify-content:center}
+.row .big{margin-top:0}
+.row .alt{background:var(--panel);color:var(--ink)}
+.newbest{background:var(--accent);color:#14101f;font-weight:900;padding:6px 14px;border-radius:999px;margin-top:10px;display:none}
+
+/* ---------- MODAL ---------- */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+#modal.on{display:flex}
+.card{background:var(--panel);border-radius:var(--r);padding:20px;width:min(560px,100%);max-height:90vh;display:flex;flex-direction:column;gap:10px}
+.card h3{margin:0;font-size:22px}
+.card p{margin:0;color:var(--mute);font-size:14px}
+.card textarea{flex:1;min-height:180px;background:#140f22;color:var(--ink);border:2px solid #3a3150;border-radius:14px;padding:12px;font:inherit;font-size:16px;resize:none;user-select:text;-webkit-user-select:text}
+.card .row{margin-top:4px}
+.card .big{font-size:17px;padding:12px 26px}
+</style>
+</head>
+<body>
+
+<!-- MENÚ -->
+<section id="menu" class="screen on">
+  <div class="brand">
+    <div class="logo">🤔</div>
+    <div><h1>¡A la frente!</h1><p>Móvil en la frente, que te lo expliquen y adivina.</p></div>
+  </div>
+  <div class="bar" id="durBar"><span class="lbl">Tiempo</span></div>
+  <div class="toggles">
+    <button class="chip" id="tSound">🔊 Sonido</button>
+    <button class="chip" id="tInvert">↕️ Invertir inclinación</button>
+    <button class="chip" id="tMime">🎭 Sin hablar (solo mímica)</button>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="foot">
+    <b>Cómo se juega:</b> elige categoría, ponte el móvil en la frente en horizontal con la pantalla mirando a tus amigos.
+    Inclina <b>hacia abajo</b> si aciertas y <b>hacia arriba</b> para pasar. ¿Sin sensores? Toca la mitad
+    <b>derecha</b> para acertar y la <b>izquierda</b> para pasar.
+  </div>
+</section>
+
+<!-- PREPARADOS -->
+<section id="ready" class="screen">
+  <div class="em" id="rEm">🎬</div>
+  <h2 id="rName">Películas</h2>
+  <p>Ponte el móvil en la <b>frente</b>, en horizontal, con la pantalla hacia los demás.</p>
+  <div class="how"><div>⬇️ Abajo = ¡Acierto!</div><div>⬆️ Arriba = Paso</div></div>
+  <p id="rMode" style="opacity:.8"></p>
+  <button class="big" id="go">¡Vamos!</button>
+  <button class="ghost" id="back">← Volver</button>
+  <div id="count"></div>
+</section>
+
+<!-- JUEGO -->
+<section id="play" class="screen">
+  <div id="timer">60</div>
+  <div id="scoreTag">0</div>
+  <div id="word"></div>
+  <div id="calib"></div>
+  <div id="hint"><span>◀ Toca: paso</span><span>Toca: acierto ▶</span></div>
+</section>
+<div id="flash"></div>
+
+<!-- RESULTADOS -->
+<section id="results" class="screen">
+  <div style="font-weight:800;color:var(--mute)" id="resCat"></div>
+  <div class="sc" id="resScore">0</div>
+  <div class="newbest" id="newBest">🏆 ¡Nuevo récord!</div>
+  <div class="sub" id="resSub"></div>
+  <div id="list"></div>
+  <div class="row">
+    <button class="big" id="again">Otra vez</button>
+    <button class="big alt" id="toMenu">Menú</button>
+  </div>
+</section>
+
+<!-- MODAL PALABRAS PROPIAS -->
+<div id="modal">
+  <div class="card">
+    <h3>✏️ Mis palabras</h3>
+    <p>Una por línea (o separadas por comas). Ideal para nombres de la familia, la cuadrilla, chistes internos…</p>
+    <textarea id="customTxt" placeholder="Aita&#10;Amama&#10;El perro del vecino&#10;Tortilla con cebolla"></textarea>
+    <div class="row">
+      <button class="big" id="saveCustom">Guardar y jugar</button>
+      <button class="big alt" id="closeCustom">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== DATOS ===================== */
+const CATS = [
+ {id:'peliculas',name:'Películas',em:'🎬',c:'#ff4d6d',w:`Titanic,Avatar,El Rey León,Jurassic Park,Toy Story,Frozen,Shrek,Matrix,El Padrino,Star Wars,Harry Potter,Regreso al futuro,Tiburón,E.T.,Indiana Jones,Gladiator,Piratas del Caribe,Buscando a Nemo,Ocho apellidos vascos,Torrente,Coco,Up,Los Vengadores,Spiderman,Batman,Rocky,Grease,Dirty Dancing,Mamma Mia,Forrest Gump,Gremlins,Los Goonies,Cazafantasmas,Ratatouille,Mary Poppins,El señor de los anillos,Top Gun,Barbie,Oppenheimer,Solo en casa`},
+ {id:'animales',name:'Animales',em:'🦒',c:'#2fb36b',w:`Jirafa,Elefante,Pingüino,Canguro,Pulpo,Tiburón,Murciélago,Camaleón,Koala,Hipopótamo,Cocodrilo,Flamenco,Erizo,Mapache,Caracol,Mofeta,Búho,Delfín,Pavo real,Perezoso,Medusa,Llama,Castor,Lobo,Cebra,Gorila,Tortuga,Ardilla,Langosta,Abeja,Mosquito,Rinoceronte,Foca,Avestruz,Cangrejo,Caballito de mar,Oso panda,Topo,Gallina,Burro`},
+ {id:'mimica',name:'Mímica',em:'🎭',c:'#9b5cff',mime:true,w:`Hacer surf,Cambiar un pañal,Ordeñar una vaca,Tocar la batería,Pescar,Bailar sevillanas,Hacer yoga,Cortar cebolla,Patinar sobre hielo,Escalar,Hacer un selfie,Lavarse los dientes,Remar,Jugar a los bolos,Pelar un plátano,Montar a caballo,Tejer,Boxear,Conducir un camión,Hacer malabares,Planchar,Saltar a la comba,Dirigir una orquesta,Barrer,Tocar el violín,Hacer flexiones,Ser un robot,Andar como un pato,Ponerse lentillas,Inflar un globo,Abrir un regalo,Comer espaguetis,Tirar a canasta,Sacar al perro,Darse una ducha,Atarse los zapatos,Hacer palomitas,Peinar a alguien,Cortar un tronco,Hacer la ola`},
+ {id:'objetos',name:'Objetos',em:'☂️',c:'#1fa7e0',w:`Paraguas,Tostadora,Cepillo de dientes,Microondas,Grapadora,Linterna,Mando a distancia,Sacacorchos,Calcetín,Bombilla,Tijeras,Almohada,Reloj de arena,Brújula,Espejo,Martillo,Cremallera,Ventilador,Secador,Botijo,Mechero,Chupete,Bolígrafo,Llave inglesa,Sartén,Gafas de sol,Escoba,Cafetera,Pinza de la ropa,Auriculares,Calculadora,Patinete,Termómetro,Globo,Imán,Hucha,Despertador,Peine,Bañera,Lavavajillas`},
+ {id:'profesiones',name:'Profesiones',em:'👩‍🚒',c:'#f2542d',w:`Bombero,Astronauta,Fontanero,Dentista,Payaso,Cartero,Peluquero,Piloto,Socorrista,Detective,Carnicero,Árbitro,Mago,Veterinario,Jardinero,Panadero,Electricista,Taxista,Pirata,Camarero,Profesor,Juez,Fotógrafo,Cocinero,Pescador,Arquitecto,Enfermero,Albañil,Espía,Domador de leones,Influencer,Programador,Youtuber,Policía,Futbolista,Cantante de ópera,Granjero,Azafata,Mecánico,Científico loco`},
+ {id:'comida',name:'Comida',em:'🥘',c:'#e8a317',w:`Paella,Tortilla de patatas,Pizza,Sushi,Churros,Gazpacho,Croquetas,Pulpo a la gallega,Bocadillo,Palomitas,Helado,Hamburguesa,Fabada,Bacalao al pil pil,Pintxo,Marmitako,Talo con chorizo,Kebab,Tacos,Chocolate,Fresa,Sandía,Piña,Aguacate,Espaguetis,Patatas bravas,Jamón,Queso,Donut,Tarta de cumpleaños,Huevo frito,Cereales,Natillas,Flan,Lentejas,Gambas,Calamares,Mejillones,Pan con tomate,Turrón`},
+ {id:'lugares',name:'Lugares',em:'🗺️',c:'#12a39a',w:`Playa,Hospital,Aeropuerto,Cine,Biblioteca,Gimnasio,Zoo,Iglesia,Desierto,Selva,Polo Norte,La Luna,Castillo,Supermercado,Discoteca,Estadio,Museo,Peluquería,Circo,Parque de atracciones,Volcán,Isla desierta,Submarino,Ascensor,Camping,Granja,Torre Eiffel,Museo Guggenheim,Pirámides de Egipto,Gran Muralla China,Estatua de la Libertad,San Mamés,Gaztelugatxe,Venecia,Nueva York,Hollywood,Las Vegas,Monte Everest,Metro,Puente colgante`},
+ {id:'deportes',name:'Deportes',em:'⚽',c:'#3d6bff',w:`Fútbol,Baloncesto,Tenis,Natación,Ciclismo,Boxeo,Golf,Surf,Esquí,Pelota vasca,Rugby,Balonmano,Ajedrez,Waterpolo,Escalada,Judo,Esgrima,Tiro con arco,Traineras,Patinaje artístico,Salto de longitud,Maratón,Bolos,Pádel,Voleibol,Hockey,Béisbol,Fórmula 1,Paracaidismo,Gimnasia rítmica,Halterofilia,Kárate,Snowboard,Petanca,Billar,Dardos,Sumo,Herri kirolak,Polo,Curling`},
+ {id:'famosos',name:'Famosos',em:'⭐',c:'#e0408a',w:`Messi,Cristiano Ronaldo,Shakira,Rosalía,Rafa Nadal,Fernando Alonso,Albert Einstein,Cleopatra,Napoleón,Picasso,Cristóbal Colón,Leonardo da Vinci,Michael Jackson,Elvis Presley,Freddie Mercury,Marilyn Monroe,Charles Chaplin,Mozart,Beethoven,Frida Kahlo,Dalí,Cervantes,Shakespeare,Pau Gasol,Iker Casillas,Taylor Swift,Beyoncé,Madonna,Bad Bunny,Julio Iglesias,Lola Flores,Gandhi,Steve Jobs,Bill Gates,Marie Curie,Isaac Newton,Charles Darwin,Julio César,Bruce Lee,Usain Bolt`},
+ {id:'cosas_casa',name:'En casa',em:'🏠',c:'#8a6b4f',w:`Sofá,Nevera,Lavadora,Persiana,Radiador,Felpudo,Grifo,Enchufe,Wifi,Mando de la tele,Calefacción,Chimenea,Tendedero,Fregona,Aspiradora,Cortina,Microondas,Lámpara,Escalera,Buzón,Timbre,Garaje,Jardín,Barbacoa,Hamaca,Táper,Cubo de basura,Papel higiénico,Edredón,Zapatillas de estar por casa,Llaves,Router,Cargador del móvil,Alarma,Termostato,Placas solares,Trastero,Cajón desastre,Despensa,Perchero`},
+];
+CATS.forEach(c=>c.words=c.w.split(',').map(s=>s.trim()).filter(Boolean));
+
+/* ===================== ALMACENAMIENTO ===================== */
+const store={
+  get(k,d){try{const v=localStorage.getItem('alf_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem('alf_'+k,JSON.stringify(v))}catch(e){}}
+};
+const S={dur:store.get('dur',60),sound:store.get('sound',true),invert:store.get('invert',false),mime:store.get('mime',false)};
+let custom=store.get('custom',[]);
+let best=store.get('best',{});
+
+/* ===================== UTILIDADES ===================== */
+const $=id=>document.getElementById(id);
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id))}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+function vibrate(ms){try{if(window.Android&&Android.vibrate)Android.vibrate(JSON.stringify(ms));else if(navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
+
+/* ---- Sonido con WebAudio (sin archivos) ---- */
+let ac=null;
+function audio(){if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(ac&&ac.state==='suspended')ac.resume();return ac}
+function tone(f,t0,d,type='sine',vol=.25){const a=audio();if(!a||!S.sound)return;const o=a.createOscillator(),g=a.createGain();
+  o.type=type;o.frequency.value=f;const t=a.currentTime+t0;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.01);
+  g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(a.destination);o.start(t);o.stop(t+d+.02)}
+const sfx={
+  ok(){tone(660,0,.12,'triangle');tone(990,.1,.22,'triangle')},
+  pass(){tone(220,0,.25,'sawtooth',.12)},
+  tick(){tone(1200,0,.05,'square',.08)},
+  beep(){tone(520,0,.18,'square',.12)},
+  go(){tone(880,0,.35,'square',.14)},
+  end(){tone(392,0,.2,'sawtooth',.15);tone(330,.18,.2,'sawtooth',.15);tone(262,.36,.5,'sawtooth',.15)}
+};
+
+/* ===================== MENÚ ===================== */
+function renderMenu(){
+  const bar=$('durBar');bar.querySelectorAll('.chip').forEach(n=>n.remove());
+  [30,60,90,120].forEach(s=>{const b=document.createElement('button');b.className='chip'+(S.dur===s?' sel':'');
+    b.textContent=s<60?s+' s':(s/60)+(s%60?':30':'')+' min';if(s===90)b.textContent='1:30 min';
+    b.onclick=()=>{S.dur=s;store.set('dur',s);renderMenu()};bar.appendChild(b)});
+  $('tSound').classList.toggle('sel',S.sound);
+  $('tInvert').classList.toggle('sel',S.invert);
+  $('tMime').classList.toggle('sel',S.mime);
+  const g=$('grid');g.innerHTML='';
+  const all=[...CATS,{id:'custom',name:'Mis palabras',em:'✏️',custom:true,words:custom}];
+  all.forEach(c=>{
+    const b=document.createElement('button');b.className='cat'+(c.custom?' custom':'');
+    if(!c.custom)b.style.background=`linear-gradient(160deg,${c.c},${shade(c.c,-28)})`;
+    b.innerHTML=`<span class="em">${c.em}</span><span><div class="nm">${c.name}</div><div class="ct">${c.custom?(c.words.length?c.words.length+' palabras · mantén para editar':'Crea tu propia lista'):c.words.length+' palabras'}</div></span>`+
+      (best[c.id]?`<span class="best">🏆 ${best[c.id]}</span>`:'');
+    if(c.custom){
+      let lp;b.onpointerdown=()=>{lp=setTimeout(()=>{lp='x';openCustom()},550)};
+      b.onpointerup=b.onpointerleave=()=>{if(lp!=='x')clearTimeout(lp)};
+      b.onclick=()=>{if(lp==='x'){lp=null;return}custom.length?pick(c):openCustom()};
+      b.oncontextmenu=e=>e.preventDefault();
+    } else b.onclick=()=>pick(c);
+    g.appendChild(b);
+  });
+}
+function shade(hex,p){const n=parseInt(hex.slice(1),16);let r=n>>16,g=n>>8&255,b=n&255;
+  const f=v=>Math.max(0,Math.min(255,Math.round(v+v*p/100)));return '#'+[f(r),f(g),f(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+$('tSound').onclick=()=>{S.sound=!S.sound;store.set('sound',S.sound);renderMenu()};
+$('tInvert').onclick=()=>{S.invert=!S.invert;store.set('invert',S.invert);renderMenu()};
+$('tMime').onclick=()=>{S.mime=!S.mime;store.set('mime',S.mime);renderMenu()};
+
+function openCustom(){$('customTxt').value=custom.join('\n');$('modal').classList.add('on')}
+$('closeCustom').onclick=()=>$('modal').classList.remove('on');
+$('saveCustom').onclick=()=>{
+  custom=[...new Set($('customTxt').value.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean))];
+  store.set('custom',custom);$('modal').classList.remove('on');renderMenu();
+  if(custom.length)pick({id:'custom',name:'Mis palabras',em:'✏️',c:'#5a4d7a',words:custom});
+};
+
+/* ===================== PARTIDA ===================== */
+let cat=null,deck=[],idx=0,results=[],timeLeft=0,timerId=null,state='menu',current='';
+let armed=false,zf=0,gotMotion=false,lastAnswer=0;
+const decks={};   // mazos barajados por categoría, sin repetir hasta agotar
+
+function pick(c){
+  cat=c;audio();
+  document.body.style.background=c.c||'#5a4d7a';
+  $('ready').style.background=`linear-gradient(160deg,${c.c||'#5a4d7a'},${shade(c.c||'#5a4d7a',-35)})`;
+  $('rEm').textContent=c.em;$('rName').textContent=c.name;
+  $('rMode').textContent=(S.mime||c.mime)?'🤫 Modo mímica: los demás no pueden hablar, ¡solo gestos!':`⏱️ ${S.dur} segundos · ¡que te lo expliquen sin decir la palabra!`;
+  show('ready');state='ready';
+}
+$('back').onclick=()=>{state='menu';document.body.style.background='';show('menu')};
+
+$('go').onclick=async()=>{
+  // Permiso de sensores en iOS 13+
+  try{if(typeof DeviceMotionEvent!=='undefined'&&DeviceMotionEvent.requestPermission){await DeviceMotionEvent.requestPermission()}}catch(e){}
+  // Pantalla completa + horizontal + pantalla siempre encendida
+  try{if(!document.fullscreenElement&&document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen({navigationUI:'hide'})}catch(e){}
+  try{if(screen.orientation&&screen.orientation.lock)await screen.orientation.lock('landscape')}catch(e){}
+  keepAwake();
+  countdown();
+};
+
+let wakeLock=null;
+async function keepAwake(){try{if('wakeLock' in navigator)wakeLock=await navigator.wakeLock.request('screen')}catch(e){}}
+
+function countdown(){
+  state='count';const el=$('count');el.style.display='grid';let n=3;
+  el.textContent=n;sfx.beep();vibrate(60);
+  const t=setInterval(()=>{n--;if(n>0){el.textContent=n;sfx.beep();vibrate(60)}else{clearInterval(t);el.style.display='none';start()}},900);
+}
+
+function start(){
+  const key=cat.id+':'+cat.words.length;
+  if(!decks[key]||decks[key].i>=decks[key].a.length-3)decks[key]={a:shuffle(cat.words),i:0};
+  deck=decks[key];results=[];timeLeft=S.dur;armed=true;zf=0;
+  $('play').style.background=`linear-gradient(160deg,${cat.c||'#5a4d7a'},${shade(cat.c||'#5a4d7a',-35)})`;
+  $('timer').classList.remove('hurry');$('timer').textContent=timeLeft;$('scoreTag').textContent='0';
+  $('calib').textContent=gotMotion?'':'Sin sensor detectado: toca derecha = acierto, izquierda = paso';
+  show('play');state='playing';sfx.go();vibrate(200);nextWord();
+  clearInterval(timerId);
+  timerId=setInterval(()=>{
+    timeLeft--;$('timer').textContent=Math.max(0,timeLeft);
+    if(timeLeft<=10&&timeLeft>0){$('timer').classList.add('hurry');sfx.tick()}
+    if(timeLeft<=0)finish();
+  },1000);
+}
+
+function nextWord(){
+  if(deck.i>=deck.a.length){deck.a=shuffle(cat.words);deck.i=0}
+  current=deck.a[deck.i++];
+  const w=$('word');w.textContent=current;fit(w);
+}
+function fit(el){
+  // Ajusta el tamaño de letra para que la palabra ocupe lo máximo posible sin cortarse
+  const H=innerHeight*.62;let s=Math.min(innerHeight*.42,innerWidth*.22);
+  el.style.fontSize=s+'px';
+  while((el.scrollWidth>el.clientWidth+1||el.offsetHeight>H)&&s>18){s*=.92;el.style.fontSize=s+'px'}
+}
+
+function answer(ok){
+  if(state!=='playing')return;
+  const now=Date.now();if(now-lastAnswer<450)return;lastAnswer=now;
+  results.push({w:current,ok});armed=false;
+  $('scoreTag').textContent=results.filter(r=>r.ok).length;
+  const f=$('flash');f.className=ok?'ok':'pass';
+  f.innerHTML=ok?`¡CORRECTO!<small>${esc(current)}</small>`:`PASO<small>${esc(current)}</small>`;
+  ok?(sfx.ok(),vibrate([40,40,80])):(sfx.pass(),vibrate(250));
+  state='flash';
+  setTimeout(()=>{
+    f.className='';
+    if(timeLeft<=0){finish();return}
+    state='playing';nextWord();
+    // Con sensor: espera a que vuelvas a poner el móvil recto. Sin sensor: listo ya.
+    if(!gotMotion)armed=true;
+  },750);
+}
+function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+function finish(){
+  if(state==='results')return;
+  clearInterval(timerId);state='results';$('flash').className='';
+  sfx.end();vibrate([300,100,300]);
+  const sc=results.filter(r=>r.ok).length;
+  $('resCat').textContent=cat.em+' '+cat.name+' · '+S.dur+' s';
+  $('resScore').textContent=sc;
+  $('resSub').textContent=(sc===1?'palabra acertada':'palabras acertadas')+(results.length?` de ${results.length}`:'');
+  const isBest=sc>0&&sc>(best[cat.id]||0);
+  if(isBest){best[cat.id]=sc;store.set('best',best)}
+  $('newBest').style.display=isBest?'inline-block':'none';
+  $('list').innerHTML=results.map(r=>`<span class="${r.ok?'y':'n'}">${r.ok?'✓':'✗'} ${esc(r.w)}</span>`).join('')||'<span class="n" style="text-decoration:none">Ni una… ¡a la próxima!</span>';
+  $('results').style.background=`linear-gradient(180deg,${shade(cat.c||'#5a4d7a',-40)},#14101f 70%)`;
+  show('results');
+  try{wakeLock&&wakeLock.release()}catch(e){}
+}
+$('again').onclick=()=>pick(cat);
+$('toMenu').onclick=()=>{state='menu';document.body.style.background='';renderMenu();show('menu');
+  try{document.fullscreenElement&&document.exitFullscreen()}catch(e){}};
+
+/* ===================== SENSORES =====================
+   Usamos el eje Z de la gravedad (perpendicular a la pantalla):
+   - Móvil recto en la frente  → Z ≈ 0
+   - Pantalla mirando al suelo → Z ≈ -9.8  → ACIERTO
+   - Pantalla mirando al techo → Z ≈ +9.8  → PASO
+   Así da igual hacia qué lado esté girado el horizontal. */
+const TH=6.2, REARM=3.8;
+window.addEventListener('devicemotion',e=>{
+  const g=e.accelerationIncludingGravity;if(!g||g.z==null)return;
+  gotMotion=true;
+  let z=g.z*(S.invert?-1:1);
+  zf=zf*.6+z*.4; // filtro paso bajo para evitar falsos positivos
+  if(state==='playing'&&$('calib').textContent)$('calib').textContent='';
+  if(state!=='playing')return;
+  if(!armed){if(Math.abs(zf)<REARM)armed=true;return}
+  if(zf<-TH)answer(true);else if(zf>TH)answer(false);
+});
+
+/* Controles táctiles y teclado (respaldo / pruebas en PC) */
+$('play').addEventListener('pointerdown',e=>{
+  if(state!=='playing')return;
+  answer(e.clientX>innerWidth/2);
+});
+addEventListener('keydown',e=>{
+  if(state!=='playing')return;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' ')answer(true);
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp')answer(false);
+});
+addEventListener('resize',()=>{if(state==='playing')fit($('word'))});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&state==='playing')keepAwake()});
+window.backPressed=()=>{ // llamado desde Android al pulsar "atrás"
+  if(state==='menu')return false;
+  clearInterval(timerId);state='menu';$('flash').className='';$('count').style.display='none';
+  document.body.style.background='';renderMenu();show('menu');return true;
+};
+
+renderMenu();
+</script>
+</body>
+</html>
