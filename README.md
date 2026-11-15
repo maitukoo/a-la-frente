@@ -5,15 +5,15 @@ Te pones el móvil en la frente, sale una palabra y los demás te la explican.
 - Respaldo táctil: mitad derecha = acierto, mitad izquierda = paso.
 
 ## Qué incluye
-- 10 categorías (1000 palabras) + **Mis palabras** (lista propia, se guarda en el móvil; mantén pulsado para editar).
+- 10 categorías (1000 palabras) + **Mix** (todas mezcladas) + **Mis palabras** (lista propia, se guarda en el móvil; mantén pulsado para editar).
 - Tiempo 30 s / 1 min / 1:30 / 2 min, cuenta atrás 3-2-1, aviso en los últimos 10 s.
-- Sonidos generados (sin archivos), vibración nativa, pantalla siempre encendida, pantalla completa horizontal.
+- Sonidos generados (sin archivos), vibración nativa, pantalla siempre encendida, menú en vertical u horizontal, partida siempre en horizontal.
 - Récord por categoría, resumen de aciertos/pasadas al final.
 - Modo "solo mímica" e "Invertir inclinación" (por si algún móvil reporta el sensor al revés).
 
 ## Estructura
 - `app/src/main/assets/index.html` → **todo el juego** (HTML/JS). Para añadir palabras o categorías edita el array `CATS`.
-- `MainActivity.kt` → WebView a pantalla completa, horizontal, pantalla encendida, botón atrás y puente `Android.vibrate()`.
+- `MainActivity.kt` → WebView a pantalla completa, horizontal solo en partida (`Android.setLandscape`), pantalla encendida, botón atrás y puente `Android.vibrate()`.
 
 ## Cómo sacar el APK
 **Opción A – Android Studio:** File → Open → esta carpeta → Run ▶ (o Build → Build APK).

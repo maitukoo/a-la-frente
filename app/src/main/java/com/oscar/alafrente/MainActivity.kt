@@ -2,6 +2,7 @@ package com.oscar.alafrente
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.ActivityInfo
 import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
@@ -78,6 +79,15 @@ class MainActivity : AppCompatActivity() {
 
     /** Puente JS → Android. El WebView no soporta navigator.vibrate, así que lo hacemos nativo. */
     inner class Bridge {
+        /** Horizontal solo durante la partida; en el menú la orientación es libre. */
+        @JavascriptInterface
+        fun setLandscape(on: Boolean) {
+            runOnUiThread {
+                requestedOrientation = if (on) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                                       else ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            }
+        }
+
         @JavascriptInterface
         fun vibrate(json: String) {
             val vib: Vibrator = if (Build.VERSION.SDK_INT >= 31) {

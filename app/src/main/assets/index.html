@@ -179,6 +179,8 @@ const CATS = [
  {id:'cosas_casa',name:'En casa',em:'🏠',c:'#8a6b4f',w:`Sofá,Nevera,Lavadora,Persiana,Radiador,Felpudo,Grifo,Enchufe,Wifi,Mando de la tele,Calefacción,Chimenea,Tendedero,Fregona,Aspiradora,Cortina,Microondas,Lámpara,Escalera,Buzón,Timbre,Garaje,Jardín,Barbacoa,Hamaca,Táper,Cubo de basura,Papel higiénico,Edredón,Zapatillas de estar por casa,Llaves,Router,Cargador del móvil,Alarma,Termostato,Placas solares,Trastero,Cajón desastre,Despensa,Perchero,Mesa,Silla,Cama,Armario,Estantería,Mesilla de noche,Ducha,Lavabo,Váter,Toalla,Albornoz,Alfombra,Cuadro,Reloj de pared,Cojín,Manta,Sábanas,Pijama,Horno,Vitrocerámica,Campana extractora,Fregadero,Cubiertos,Mantel,Servilleta,Delantal,Bayeta,Estropajo,Detergente,Cesto de la ropa sucia,Plancha,Tabla de planchar,Secadora,Recogedor,Plumero,Ventana,Pomo de la puerta,Mirilla,Balcón,Tejado,Desván,Sótano,Pasillo,Salón,Dormitorio,Maceta,Pecera,Cuna,Televisión,Consola,Interruptor,Regleta,Caldera,Aire acondicionado,Botiquín,Escobilla del váter,Champú,Pasta de dientes,Báscula,Frutero`},
 ];
 CATS.forEach(c=>c.words=c.w.split(',').map(s=>s.trim()).filter(Boolean));
+// Mix: todas las categorías mezcladas
+CATS.unshift({id:'mix',name:'Mix',em:'🎲',c:'#ff8a00',words:[...new Set(CATS.flatMap(c=>c.words))]});
 
 /* ===================== ALMACENAMIENTO ===================== */
 const store={
@@ -191,7 +193,15 @@ let best=store.get('best',{});
 
 /* ===================== UTILIDADES ===================== */
 const $=id=>document.getElementById(id);
-function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id))}
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id))
+  // Menú y pantalla de preparación: orientación libre. Jugando y resultados: horizontal.
+  setLandscape(id==='play'||id==='results');
+}
+function setLandscape(on){
+  try{if(window.Android&&Android.setLandscape){Android.setLandscape(on);return}}catch(e){}
+  try{if(on){screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})}
+      else{screen.orientation&&screen.orientation.unlock&&screen.orientation.unlock()}}catch(e){}
+}
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
 function vibrate(ms){try{if(window.Android&&Android.vibrate)Android.vibrate(JSON.stringify(ms));else if(navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
 
@@ -269,7 +279,7 @@ $('go').onclick=async()=>{
   try{if(typeof DeviceMotionEvent!=='undefined'&&DeviceMotionEvent.requestPermission){await DeviceMotionEvent.requestPermission()}}catch(e){}
   // Pantalla completa + horizontal + pantalla siempre encendida
   try{if(!document.fullscreenElement&&document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen({navigationUI:'hide'})}catch(e){}
-  try{if(screen.orientation&&screen.orientation.lock)await screen.orientation.lock('landscape')}catch(e){}
+  setLandscape(true);
   keepAwake();
   countdown();
 };
