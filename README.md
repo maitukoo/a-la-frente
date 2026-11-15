@@ -1,11 +1,11 @@
 # ¡A la frente! — juego tipo "Heads Up" para Android
 
 Te pones el móvil en la frente, sale una palabra y los demás te la explican.
-- **Inclina hacia abajo** → ¡Acierto!   **Inclina hacia arriba** → Paso
+- **Inclina hacia arriba** → ¡Acierto!   **Inclina hacia abajo** → Paso
 - Respaldo táctil: mitad derecha = acierto, mitad izquierda = paso.
 
 ## Qué incluye
-- 10 categorías (400 palabras) + **Mis palabras** (lista propia, se guarda en el móvil; mantén pulsado para editar).
+- 10 categorías (1000 palabras) + **Mis palabras** (lista propia, se guarda en el móvil; mantén pulsado para editar).
 - Tiempo 30 s / 1 min / 1:30 / 2 min, cuenta atrás 3-2-1, aviso en los últimos 10 s.
 - Sonidos generados (sin archivos), vibración nativa, pantalla siempre encendida, pantalla completa horizontal.
 - Récord por categoría, resumen de aciertos/pasadas al final.
@@ -25,10 +25,10 @@ la pestaña *Actions* → última ejecución → *Artifacts*. Instálalo en el m
 
 **Opción C – Línea de comandos** (con Android SDK instalado): `./gradlew assembleRelease`
 
-> El release se firma con la clave debug para probar rápido. Para Google Play, crea tu keystore.
+> El release se firma con la clave de Oscar (`keystore/alafrente.jks.enc`, cifrada). GitHub Actions la descifra con el secreto `KEYSTORE_PASSWORD`; sin ese secreto se firma con la clave debug.
 
 ## Detección del gesto
 Se usa el eje Z de la gravedad (perpendicular a la pantalla) con filtro paso bajo:
-recto en la frente ≈ 0, pantalla al suelo ≈ −9,8 (acierto), pantalla al techo ≈ +9,8 (paso).
+recto en la frente ≈ 0, pantalla al techo ≈ +9,8 (acierto), pantalla al suelo ≈ −9,8 (paso).
 Umbral 6,2 m/s² y hay que volver a la posición recta (<3,8) para la siguiente palabra.
 Ajustables en `TH` y `REARM` dentro de `index.html`.

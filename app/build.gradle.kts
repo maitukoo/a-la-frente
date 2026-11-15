@@ -11,16 +11,29 @@ android {
         applicationId = "com.oscar.alafrente"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
+    }
+
+    // Firma con la clave de Oscar (keystore/alafrente.jks.enc, se descifra en GitHub Actions).
+    // Si no hay clave disponible (p. ej. compilando en local), se usa la clave debug.
+    val ksFile = System.getenv("KEYSTORE_FILE")
+    signingConfigs {
+        if (ksFile != null) {
+            create("oscar") {
+                storeFile = file(ksFile)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = "alafrente"
+                keyPassword = System.getenv("KEYSTORE_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            // Para probar rápido, el release se firma con la clave debug.
-            // Para publicar en Google Play, crea tu propia keystore.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (ksFile != null) signingConfigs.getByName("oscar")
+                            else signingConfigs.getByName("debug")
         }
     }
     compileOptions {
